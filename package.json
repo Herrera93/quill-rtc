@@ -1,0 +1,37 @@
+{
+  "name": "quill-rtc",
+  "version": "0.0.1",
+  "description": "Quill Extension for RTC",
+  "main": "webpack.config.js",
+  "author": "herrera93",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^6.4.1",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-es2015": "^6.24.1",
+    "css-loader": "^0.27.3",
+    "extract-text-webpack-plugin": "^2.1.0",
+    "file-loader": "^0.11.2",
+    "node-sass": "^4.5.3",
+    "sass-loader": "^6.0.5",
+    "uglifyjs-webpack-plugin": "^0.4.3",
+    "webpack": "^2.7.0",
+    "webpack-dev-server": "^2.4.5"
+  },
+  "scripts": {
+    "test": "npm test",
+    "build": "webpack"
+  },
+  "keywords": [
+    "content",
+    "rtc",
+    "quill",
+    "editor"
+  ],
+  "dependencies": {
+    "babel": "^6.23.0",
+    "recordrtc": "^5.4.1",
+    "quill": "^1.2.4"
+  }
+}
