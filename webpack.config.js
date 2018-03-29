@@ -1,74 +1,44 @@
 const path = require('path');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
-const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
-
-// const autoprefixer = requre('autoprefixer');
 
 const config = {
-    entry: './src/quill-rtc.js',
+    entry: {
+        'quill-rtc': ['./src/quill-rtc.js'],
+        'quill-rtc.min': ['./src/quill-rtc.js'],
+    },
     output: {
         path: path.resolve(__dirname, 'dist'),
-        filename: 'quill-rtc.js'
+        filename: '[name].js',
+        library: 'QuillRTC',
+        libraryTarget: 'umd',
     },
-    devServer: {
-      contentBase: path.join(__dirname, "dist"),
-      compress: true,
-      port: 9000
+    externals: {
+        quill: {
+            root: 'Quill',
+            commonjs2: 'quill',
+            commonjs: 'quill',
+            amd: 'quill'
+        }
     },
     module: {
         rules: [
-        {
-            test: /\.scss$/,
-            use: ExtractTextPlugin.extract({
-                use: [{
-                    loader: 'css-loader',
-                    options: {
-                        minimize: true || {/* CSSNano Options */}
-                    } 
-                }, {
-                    loader: 'sass-loader',
-                }]
-            }),
-        },
-        {
-            test: /\.js$/,
-            include: [
-                path.resolve(__dirname, "src/")
-            ],
-            exclude: /(node_modules)/,
-            use: {
-                loader: 'babel-loader',
-                options: {
-                    presets: [['es2015', {modules: false}],]
-                }
+            {
+                test: /\.scss$/,
+                use: ExtractTextPlugin.extract(['css-loader', 'sass-loader']),
             }
-        },
-         { 
-            test: /\.png$/, 
-            loader: "file-loader" 
-        }
         ]
     },
     plugins: [
-        new ExtractTextPlugin('quill-rtc.css'),
-        new UglifyJSPlugin({
-            compress: {
-                warnings: false,
-                screw_ie8: true,
-                conditionals: true,
-                unused: true,
-                comparisons: true,
-                sequences: true,
-                dead_code: true,
-                evaluate: true,
-                join_vars: true,
-                if_return: true
-            },
-            output: {
-                comments: false
-            }
-        }),
-    ]
+        new ExtractTextPlugin('[name].css')
+    ],
+    devServer: {
+        contentBase: [
+            path.join(__dirname, 'example'),
+            path.join(__dirname, 'dist'),
+            path.join(__dirname, 'node_modules/normalize.css'),
+            path.join(__dirname, 'node_modules/quill/dist')
+        ]
+    },
 };
 
 module.exports = config;

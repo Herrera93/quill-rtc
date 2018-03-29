@@ -1,24 +1,19 @@
 let RecordRTC = require('recordrtc');
-
-const Delta = Quill.import('delta');
-const e = (tag, attrs, ...children) => {
-    const elem = document.createElement(tag);
-    Object.keys(attrs).forEach(key => elem[key] = attrs[key]);
-    children.forEach(child => {
-        if (typeof child === "string")
-            child = document.createTextNode(child);
-        elem.appendChild(child);
-    });
-    return elem;
-};
+let Quill = require('quill');
 
 const Embed = Quill.import('blots/embed');
-var recorder; // globally accessible
+var recorder; // globally accessiblE
 
 class RTCBlot extends Embed {
-    static create(stream) {
+    static create(blob) {
         let node = super.create();
-        node.setAttribute('src', stream);
+
+        if (typeof blob === 'string') {
+            node.src = blob;
+        } else {
+            node.blob = blob;
+            setSrcObject(blob, node);
+        }
         node.setAttribute('controls', true);
         return node;
     }
@@ -36,7 +31,7 @@ class RTCBlot extends Embed {
     }
 
     static value(node) {
-        return node.getAttribute('src');
+        return node.blob;
     }
 
     format(name, value) {
@@ -60,7 +55,6 @@ Quill.register({
     'formats/bolt': RTCBlot
 });
 
-
 class ToolbarRTC {
     constructor(quill) {
         this.quill = quill;
@@ -78,7 +72,31 @@ class ToolbarRTC {
 
     checkRecording() {
         let quill = this.quill;
-        fn_checkDialogOpen(quill);
+        if (navigator.device && navigator.device.capture) {
+            var options = {
+                limit: 1,
+                duration: 10
+            };
+            navigator.device.capture.captureVideo(onSuccess, onError, options);
+
+            function onSuccess(mediaFiles) {
+                var i, path, len;
+                for (i = 0, len = mediaFiles.length; i < len; i += 1) {
+                    path = mediaFiles[i].fullPath;
+                    let range = quill.getSelection(true);
+                    quill.insertText(range.index, '\n', 'user');
+                    quill.insertEmbed(range.index + 1, 'rtc', path);
+                    quill.formatText(range.index + 1, 1, { height: '240', width: '320' })
+                    quill.setSelection(range.index + 2, 'silent');
+                }
+            }
+
+            function onError(error) {
+                navigator.notification.alert('Error code: ' + error.code, null, 'Capture Error');
+            }
+        } else {
+            fn_checkDialogOpen(quill);
+        }
         this.quill.on('text-change', function (delta, oldDelta, source) {
             if (source == 'user') {
                 fn_close();
@@ -90,7 +108,6 @@ class ToolbarRTC {
 
 function fn_close() {
     let ele_rtc_plate = document.getElementById('rtc-palette');
-    document.getElementById('rtc-close-div').style.display = "none";
     if (ele_rtc_plate) { ele_rtc_plate.remove() };
 }
 
@@ -109,8 +126,6 @@ function fn_updateRange(quill) {
     return range;
 }
 
-var recorder; // globally accessible
-
 function fn_showRTCPalatte(quill) {
     let ele_rtc_area = document.createElement('div');
     let toolbar_container = document.querySelector('.ql-toolbar');
@@ -121,7 +136,9 @@ function fn_showRTCPalatte(quill) {
     let paletteMaxPos = atSignBounds.left + 318;//palette max width is 250
     ele_rtc_area.id = 'rtc-palette';
     ele_rtc_area.style.top = 10 + atSignBounds.top + atSignBounds.height + "px";
-    if (paletteMaxPos > quill.container.offsetWidth) {
+    if (window.innerWidth < 960) {
+        ele_rtc_area.style.left = "0px";
+    } else if (paletteMaxPos > quill.container.offsetWidth) {
         ele_rtc_area.style.left = (atSignBounds.left - 318) + "px";
     }
     else {
@@ -139,22 +156,13 @@ function fn_showRTCPalatte(quill) {
     ele_rtc_area.appendChild(panel);
 
     var rtcType = [
-        { 'type': 'p', 'name': 'record', 'content': '<div class="i-record"><svg xmlns="http://www.w3.org/2000/svg" width="25px" height="25px" viewBox="0 0 25 25"><circle class="record-fill" cx="12.5" cy="12.5" r="8"/></svg></div>' },
-        { 'type': 'n', 'name': 'stop', 'content': '<div class="i-stop"><svg xmlns="http://www.w3.org/2000/svg" width="25px" height="25px" viewBox="0 0 25 25"><path class="stop-fill" d="M6.25 6.25h12.5v12.5H6.25z"/></svg></div>' }
+        { 'type': 'p', 'name': 'record', 'content': '<div class="toolbar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="25px" height="25px" viewBox="0 0 25 25"><circle class="record-fill" cx="12.5" cy="12.5" r="8"/></svg></div>' },
+        { 'type': 'n', 'name': 'stop', 'content': '<div class="toolbar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="25px" height="25px" viewBox="0 0 25 25"><path class="stop-fill" d="M6.25 6.25h12.5v12.5H6.25z"/></svg></div>' },
+        { 'type': 'o', 'name': 'close', 'content': '<div class="toolbar-icon"><svg xmlns="http://www.w3.org/2000/svg" width="25px" height="25px" viewBox="0 0 25 25"><path class="stop-fill" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>' }
     ];
 
     let tabElementHolder = document.createElement('ul');
     tabToolbar.appendChild(tabElementHolder);
-
-    if (document.getElementById('rtc-close-div') === null) {
-        let closeDiv = document.createElement('div');
-        closeDiv.id = 'rtc-close-div';
-        closeDiv.addEventListener("click", fn_close, false);
-        document.getElementsByTagName('body')[0].appendChild(closeDiv);
-    }
-    else {
-        document.getElementById('rtc-close-div').style.display = "block";
-    }
 
     rtcType.map(function (rtcType) {
         //add tab bar
@@ -167,36 +175,57 @@ function fn_showRTCPalatte(quill) {
         tabElementHolder.appendChild(tabElement);
 
         let rtcFilter = document.querySelector('.filter-' + rtcType.name);
-        if(rtcType.name == 'record'){
-            rtcFilter.addEventListener('click', function(){
-                this.disabled = true;
-                let video = document.getElementById('rtc-video');
-
-                setSrcObject(recorder.camera, video);
-                video.play();
-                recorder.startRecording();
-                document.querySelector('.record-fill').style.fill = "red";              
-            });
-        }else{
-            rtcFilter.addEventListener('click', function(){
-                document.querySelector('.record-fill').style.fill = "#6F6D70"; 
-                recorder.stopRecording(stopRecordingCallback.bind(this, quill));
-            });
+        switch (rtcType.name) {
+            case 'record':
+                rtcFilter.addEventListener('click', function () {
+                    let video = document.getElementById('rtc-video');
+                    this.disabled = true;
+                    document.querySelector('.record-fill').style.fill = "red";
+                    setSrcObject(recorder.camera, video);
+                    video.play();
+                    recorder.startRecording();
+                });
+                break;
+            case 'stop':
+                rtcFilter.addEventListener('click', function () {
+                    document.querySelector('.record-fill').style.fill = "#6F6D70";
+                    recorder.stopRecording(stopRecordingCallback.bind(this, quill));
+                });
+                break;
+            case 'close':
+                rtcFilter.addEventListener('click', fn_close);
+                break;
         }
     });
     fn_rtcPanelInit(panel, quill);
 }
+
+function captureSuccess(mediaFiles) {
+    var i, path, len;
+    for (i = 0, len = mediaFiles.length; i < len; i += 1) {
+        path = mediaFiles[i].fullPath;
+
+    }
+};
+
+// capture error callback
+function captureError(error) {
+    navigator.notification.alert('Error code: ' + error.code, null, 'Capture Error');
+};
 
 function fn_rtcPanelInit(panel, quill) {
     let videoElement = document.createElement('video');
     videoElement.id = 'rtc-video';
     videoElement.controls = true;
     videoElement.autoplay = true;
+    videoElement.width = 318;
+    videoElement.height = 220;
     panel.appendChild(videoElement);
 
-    captureCamera(function(camera){
+    captureCamera(function (camera) {
         recorder = RecordRTC(camera, {
-            type: 'video'
+            type: 'video',
+            mimeType: 'video/webm; codecs=opus,vp9'
         });
 
         recorder.camera = camera;
@@ -208,9 +237,25 @@ function fn_rtcPanelInit(panel, quill) {
 }
 
 function captureCamera(callback) {
-    navigator.mediaDevices.getUserMedia({ audio: true, video: true }).then(function(camera) {
+    var constraints = { audio: true, video: true };
+    if (iosrtc) {
+        constraints = {
+            audio: true, video: {
+                deviceId: 'com.apple.avfoundation.avcapturedevice.built-in_video:1',
+                width: {
+                    min: 320,
+                    max: 640
+                },
+                frameRate: {
+                    min: 1.0,
+                    max: 60.0
+                }
+            }
+        };
+    }
+    navigator.mediaDevices.getUserMedia(constraints).then(function (camera) {
         callback(camera);
-    }).catch(function(error) {
+    }).catch(function (error) {
         alert('Unable to capture your camera. Please check console logs.');
         console.error(error);
     });
@@ -218,19 +263,21 @@ function captureCamera(callback) {
 
 function stopRecordingCallback(quill) {
     var blob = recorder.getBlob();
+    console.log(blob);
     // let video = document.getElementById('rtc-video');
     // video.src = URL.createObjectURL(blob);
     // video.play();
     // document.querySelector('.filter-record').disabled = false;
     let range = quill.getSelection(true);
     quill.insertText(range.index, '\n', 'user');
-    quill.insertEmbed(range.index + 1, 'rtc', URL.createObjectURL(blob))
-    quill.formatText(range.index + 1, 1, { height: '240', width: '320'})
+    quill.insertEmbed(range.index + 1, 'rtc', blob);
+    quill.formatText(range.index + 1, 1, { height: '240', width: '320' })
     quill.setSelection(range.index + 2, 'silent');
     fn_close();
 }
 
 function setSrcObject(stream, element, ignoreCreateObjectURL) {
+    console.log("SET SRC OBJECT");
     if ('createObjectURL' in URL && !ignoreCreateObjectURL) {
         try {
             element.src = URL.createObjectURL(stream);
@@ -247,5 +294,4 @@ function setSrcObject(stream, element, ignoreCreateObjectURL) {
     }
 }
 
-Quill.register('modules/toolbar_rtc', ToolbarRTC);
-export { ToolbarRTC as toolbarrtc };
+export { ToolbarRTC, RTCBlot };

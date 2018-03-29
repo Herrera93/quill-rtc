@@ -1,8 +1,8 @@
 {
   "name": "quill-rtc",
-  "version": "0.0.1",
+  "version": "0.3.6",
   "description": "Quill Extension for RTC",
-  "main": "webpack.config.js",
+  "main": "dist/quill-rtc.js",
   "author": "herrera93",
   "license": "MIT",
   "devDependencies": {
